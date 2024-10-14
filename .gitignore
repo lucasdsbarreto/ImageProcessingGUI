@@ -2,4 +2,5 @@
 *.exe
 *.out
 ImageApp
+ImageProcessingGUI
 build/
