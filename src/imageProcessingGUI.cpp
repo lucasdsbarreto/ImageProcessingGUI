@@ -1,5 +1,7 @@
 #include <wx/wx.h>
 #include <wx/image.h>
+#include <chrono>
+#include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -20,6 +22,7 @@ private:
     void OnSaveFilteredImage(wxCommandEvent& event);  // Função para salvar imagem filtrada
     wxBitmap LoadImage(const wxString& filename);
     void ClearImageData();  // Libera a memória da imagem quando necessário
+    void ShowExecutionTime(const char* operation, double milliseconds);
 
     unsigned char* m_imageData;           // Armazena os dados brutos da imagem original
     unsigned char* m_filteredImageData;   // Dados da imagem filtrada
@@ -95,7 +98,7 @@ MyFrame::MyFrame()
 
     sizer->Add(filterSizer, 0, wxALIGN_CENTER | wxTOP, 10);
 
-        // Botão "Salvar Imagem Filtrada"
+    // Botão "Salvar Imagem Filtrada"
     wxButton* saveButton = new wxButton(panel, 1005, "Salvar Imagem", wxDefaultPosition, wxSize(150, 30));
     sizer->Add(saveButton, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, 10);
 
@@ -120,8 +123,12 @@ void MyFrame::ClearImageData() {
 
 wxBitmap MyFrame::LoadImage(const wxString& filename) {
     ClearImageData();  // Limpa dados anteriores, se existirem
-
+    
+    auto start = std::chrono::high_resolution_clock::now();
     m_imageData = stbi_load(filename.ToStdString().c_str(), &m_imgWidth, &m_imgHeight, &m_imgChannels, 0);
+    auto end = std::chrono::high_resolution_clock::now();
+    double duration = std::chrono::duration<double, std::milli>(end - start).count();
+    ShowExecutionTime("Carregar imagem", duration);
 
     if (m_imageData) {
         wxImage img(m_imgWidth, m_imgHeight, m_imageData, true);
@@ -131,6 +138,11 @@ wxBitmap MyFrame::LoadImage(const wxString& filename) {
         wxLogError("Falha ao carregar a imagem: %s", filename);
         return wxBitmap();
     }
+}
+
+void MyFrame::ShowExecutionTime(const char* operation, double milliseconds) {
+    wxString operationString(operation); 
+    wxLogMessage("Tempo de execucao para %s foi de %.4f ms", operationString, milliseconds);
 }
 
 void MyFrame::OnOpen(wxCommandEvent& event) {
@@ -155,6 +167,8 @@ void MyFrame::OnFilter1(wxCommandEvent& event) {
         return;
     }
 
+    auto start = std::chrono::high_resolution_clock::now();
+    
     m_filteredImageData = (unsigned char*)malloc(m_imgWidth * m_imgHeight * m_imgChannels);
     if (!m_filteredImageData) {
         wxLogError("Falha ao alocar memória para imagem filtrada.");
@@ -167,6 +181,10 @@ void MyFrame::OnFilter1(wxCommandEvent& event) {
         m_filteredImageData[i] = 255;  // Define o canal G (verde) para o valor máximo
     }
 
+    auto end = std::chrono::high_resolution_clock::now();
+    double duration = std::chrono::duration<double, std::milli>(end - start).count();
+    ShowExecutionTime("Aplicar Filtro 1", duration);
+
     wxImage filteredImg(m_imgWidth, m_imgHeight, m_filteredImageData, true);
     m_imageDisplay->SetBitmap(wxBitmap(filteredImg));
 }
@@ -176,7 +194,9 @@ void MyFrame::OnFilter2(wxCommandEvent& event) {
         wxLogError("Nenhuma imagem carregada.");
         return;
     }
-
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    
     m_filteredImageData = (unsigned char*)malloc(m_imgWidth * m_imgHeight * m_imgChannels);
     if (!m_filteredImageData) {
         wxLogError("Falha ao alocar memória para imagem filtrada.");
@@ -195,6 +215,10 @@ void MyFrame::OnFilter2(wxCommandEvent& event) {
         m_filteredImageData[i + 2] = gray;    // Azul
     }
 
+    auto end = std::chrono::high_resolution_clock::now();
+    double duration = std::chrono::duration<double, std::milli>(end - start).count();
+    ShowExecutionTime("Aplicar Filtro 2", duration);
+
     wxImage filteredImg(m_imgWidth, m_imgHeight, m_filteredImageData, true);
     m_imageDisplay->SetBitmap(wxBitmap(filteredImg));
 }
@@ -205,6 +229,8 @@ void MyFrame::OnFilter3(wxCommandEvent& event) {
         return;
     }
 
+    auto start = std::chrono::high_resolution_clock::now();
+    
     m_filteredImageData = (unsigned char*)malloc(m_imgWidth * m_imgHeight * m_imgChannels);
     if (!m_filteredImageData) {
         wxLogError("Falha ao alocar memória para imagem filtrada.");
@@ -219,6 +245,10 @@ void MyFrame::OnFilter3(wxCommandEvent& event) {
         m_filteredImageData[i + 1] = 255 - m_filteredImageData[i + 1]; // Verde
         m_filteredImageData[i + 2] = 255 - m_filteredImageData[i + 2]; // Azul
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    double duration = std::chrono::duration<double, std::milli>(end - start).count();
+    ShowExecutionTime("Aplicar Filtro 3", duration);
 
     wxImage filteredImg(m_imgWidth, m_imgHeight, m_filteredImageData, true);
     m_imageDisplay->SetBitmap(wxBitmap(filteredImg));
@@ -248,11 +278,14 @@ void MyFrame::OnSaveFilteredImage(wxCommandEvent& event) {
 
     if (saveFileDialog.ShowModal() == wxID_OK) {
         wxString savePath = saveFileDialog.GetPath();
-
+        
+        auto start = std::chrono::high_resolution_clock::now();
         if (!stbi_write_png(savePath.ToStdString().c_str(), m_imgWidth, m_imgHeight, m_imgChannels, m_filteredImageData, m_imgWidth * m_imgChannels)) {
             wxLogError("Falha ao salvar a imagem em: %s", savePath);
         } else {
-            wxLogMessage("Imagem filtrada salva com sucesso em: %s", savePath);
+            auto end = std::chrono::high_resolution_clock::now();
+            double duration = std::chrono::duration<double, std::milli>(end - start).count();
+            ShowExecutionTime("Aplicar Filtro 1", duration);
         }
     }
 }
