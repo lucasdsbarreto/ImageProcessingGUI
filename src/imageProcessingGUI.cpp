@@ -165,8 +165,30 @@ void MyFrame::OnFilter1(wxCommandEvent& event) {
 }
 
 void MyFrame::OnFilter2(wxCommandEvent& event) {
-    wxLogMessage("Filtro 2 aplicado.");
-    wxImage filteredImg(m_imgWidth, m_imgHeight, m_imageData, true);
+    if (!m_imageData) {
+        wxLogError("Nenhuma imagem carregada.");
+        return;
+    }
+
+    m_filteredImageData = (unsigned char*)malloc(m_imgWidth * m_imgHeight * m_imgChannels);
+    if (!m_filteredImageData) {
+        wxLogError("Falha ao alocar memória para imagem filtrada.");
+        return;
+    }
+
+    memcpy(m_filteredImageData, m_imageData, m_imgWidth * m_imgHeight * m_imgChannels);
+
+    // Aplicar filtro de escala de cinza
+    for (int i = 0; i < m_imgWidth * m_imgHeight * m_imgChannels; i += m_imgChannels) {
+        unsigned char gray = static_cast<unsigned char>(
+            0.2126 * m_filteredImageData[i] + 0.7152 * m_filteredImageData[i + 1] + 0.0722 * m_filteredImageData[i + 2]
+        );
+        m_filteredImageData[i] = gray;        // Vermelho
+        m_filteredImageData[i + 1] = gray;    // Verde
+        m_filteredImageData[i + 2] = gray;    // Azul
+    }
+
+    wxImage filteredImg(m_imgWidth, m_imgHeight, m_filteredImageData, true);
     m_imageDisplay->SetBitmap(wxBitmap(filteredImg));
 }
 
