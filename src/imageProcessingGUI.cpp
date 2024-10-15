@@ -2,8 +2,8 @@
 #include <wx/image.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include "stb_image_write.h" 
-
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 using namespace std;
 
 class MyFrame : public wxFrame {
@@ -17,6 +17,7 @@ private:
     void OnFilter2(wxCommandEvent& event);  // Função de filtro 2
     void OnFilter3(wxCommandEvent& event);  // Função de filtro 3
     void OnRevert(wxCommandEvent& event);   // Função para reverter ao original
+    void OnSaveFilteredImage(wxCommandEvent& event);  // Função para salvar imagem filtrada
     wxBitmap LoadImage(const wxString& filename);
     void ClearImageData();  // Libera a memória da imagem quando necessário
 
@@ -36,6 +37,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_BUTTON(1002, MyFrame::OnFilter2)
     EVT_BUTTON(1003, MyFrame::OnFilter3)
     EVT_BUTTON(1004, MyFrame::OnRevert) 
+    EVT_BUTTON(1005, MyFrame::OnSaveFilteredImage)
 wxEND_EVENT_TABLE()
 
 class MyApp : public wxApp {
@@ -92,6 +94,11 @@ MyFrame::MyFrame()
     filterSizer->Add(revertButton, 0, wxALIGN_CENTER);
 
     sizer->Add(filterSizer, 0, wxALIGN_CENTER | wxTOP, 10);
+
+        // Botão "Salvar Imagem Filtrada"
+    wxButton* saveButton = new wxButton(panel, 1005, "Salvar Imagem", wxDefaultPosition, wxSize(150, 30));
+    sizer->Add(saveButton, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, 10);
+
 
     panel->SetSizer(sizer);
 }
@@ -227,4 +234,25 @@ void MyFrame::OnRevert(wxCommandEvent& event) {
 
     wxImage originalImg(m_imgWidth, m_imgHeight, m_imageData, true);
     m_imageDisplay->SetBitmap(wxBitmap(originalImg));
+}
+
+void MyFrame::OnSaveFilteredImage(wxCommandEvent& event) {
+    if (!m_filteredImageData) {
+        wxLogError("Nenhuma imagem filtrada para salvar.");
+        return;
+    }
+
+    wxFileDialog saveFileDialog(this, "Save filtered image", "", "", 
+        "PNG files (*.png)|*.png", 
+        wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+    if (saveFileDialog.ShowModal() == wxID_OK) {
+        wxString savePath = saveFileDialog.GetPath();
+
+        if (!stbi_write_png(savePath.ToStdString().c_str(), m_imgWidth, m_imgHeight, m_imgChannels, m_filteredImageData, m_imgWidth * m_imgChannels)) {
+            wxLogError("Falha ao salvar a imagem em: %s", savePath);
+        } else {
+            wxLogMessage("Imagem filtrada salva com sucesso em: %s", savePath);
+        }
+    }
 }
