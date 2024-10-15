@@ -193,8 +193,30 @@ void MyFrame::OnFilter2(wxCommandEvent& event) {
 }
 
 void MyFrame::OnFilter3(wxCommandEvent& event) {
-    wxLogMessage("Filtro 3 aplicado.");
+    if (!m_imageData) {
+        wxLogError("Nenhuma imagem carregada.");
+        return;
+    }
+
+    m_filteredImageData = (unsigned char*)malloc(m_imgWidth * m_imgHeight * m_imgChannels);
+    if (!m_filteredImageData) {
+        wxLogError("Falha ao alocar memória para imagem filtrada.");
+        return;
+    }
+
+    memcpy(m_filteredImageData, m_imageData, m_imgWidth * m_imgHeight * m_imgChannels);
+
+    // Aplicar filtro negativo
+    for (int i = 0; i < m_imgWidth * m_imgHeight * m_imgChannels; i += m_imgChannels) {
+        m_filteredImageData[i] = 255 - m_filteredImageData[i];       // Vermelho
+        m_filteredImageData[i + 1] = 255 - m_filteredImageData[i + 1]; // Verde
+        m_filteredImageData[i + 2] = 255 - m_filteredImageData[i + 2]; // Azul
+    }
+
+    wxImage filteredImg(m_imgWidth, m_imgHeight, m_filteredImageData, true);
+    m_imageDisplay->SetBitmap(wxBitmap(filteredImg));
 }
+
 
 // Função para reverter a imagem ao original
 void MyFrame::OnRevert(wxCommandEvent& event) {
